@@ -20,7 +20,7 @@ app.get('/notion-database/:databaseId', async (req, res) => {
       database_id: databaseId,
     });
 
-    res.json(response.results);
+    res.json(response);
   } catch (error) {
     console.error('Error querying Notion database:', error.message);
     res.status(500).json({ error: 'Failed to query Notion database.' });
@@ -29,14 +29,25 @@ app.get('/notion-database/:databaseId', async (req, res) => {
 
 app.get('/hashnode-blogs', async (req, res) => {
     try {
-      const response = await axios.get('https://api.hashnode.com/v1/me/posts', {
+      const query = `{
+        user(username: "ighoshsubho") {
+            publication {
+            posts(page: 0) {
+                title
+                brief
+                slug
+            }
+            }
+        }
+        }`;
+      const response = await axios.post('https://api.hashnode.com', {query}, {
         headers: {
           'Content-Type': 'application/json',
           Authorization: HASHNODE_API_KEY, // Replace with your Hashnode API key
         },
       });
   
-      res.json(response.data);
+      res.json(response.data.data.user.publication.posts);
     } catch (error) {
       console.error('Error fetching Hashnode blogs:', error.message);
       res.status(500).json({ error: 'Failed to fetch Hashnode blogs.' });
