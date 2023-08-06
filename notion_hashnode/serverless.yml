@@ -11,7 +11,7 @@
 #
 # Happy Coding!
 
-service: notion-hashnode
+service: notion-blog
 # app and org for use with dashboard.serverless.com
 #app: your-app-name
 #org: your-org-name
@@ -22,8 +22,6 @@ frameworkVersion: "3"
 
 provider:
   name: aws
-  stage: prod
-  region: us-east-1
   runtime: nodejs18.x
 
 # you can overwrite defaults here
@@ -62,18 +60,14 @@ provider:
 
 functions:
   hello:
-    handler: handler.hello
+    handler: handler.notion_to_blog
     events:
-      - http: ANY /{proxy+}
-      - http: ANY /
-    environment:
-      NOTION_API_KEY: <YOUR_NOTION_API_KEY>
-      HASHNODE_API_KEY: <YOUR_HASHNODE_API_KEY>
-      NOTION_DATABASE_ID: <YOUR_DATABASE_ID>
-    
+      - httpApi:
+          path: /api/v1
+          method: get
 #      - websocket: $connect
 #      - s3: ${env:BUCKET}
-#      - schedule: rate(10 minutes)
+      - schedule: rate(240 minutes)
 #      - sns: greeter-topic
 #      - stream: arn:aws:dynamodb:region:XXXXXX:table/foo/stream/1970-01-01T00:00:00.000
 #      - alexaSkill: amzn1.ask.skill.xx-xx-xx-xx
@@ -101,8 +95,10 @@ functions:
 #            path: /hello
 
 #    Define function environment variables here
-#    environment:
-#      variable2: value2
+    environment:
+      NOTION_API_KEY: <YOUR_NOTION_API_KEY>
+      DEV_TO_API_KEY: <YOUR_DEV_TO_API_KEY>
+      NOTION_DATABASE_ID: <YOUR_NOTION_DATABASE_ID>
 
 # you can add CloudFormation resource templates here
 #resources:

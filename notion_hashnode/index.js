@@ -7,7 +7,7 @@ const axios = require('axios');
 const app = express();
 const PORT = 3000;
 const NOTION_API_KEY = process.env.NOTION_API_KEY;
-const HASHNODE_API_KEY = process.env.HASHNODE_API_KEY;
+const DEV_TO_API_KEY = process.env.DEV_TO_API_KEY;
 const NOTION_DATABASE_ID = process.env.NOTION_DATABASE_ID;
 const notion = new Client({ auth: NOTION_API_KEY });
 
@@ -94,7 +94,6 @@ app.get('/notion-database', async (req, res) => {
 
           formattedResponse.push({
             title: item.properties['Title'].title[0].plain_text,
-            description: item.properties['Description'].rich_text[0].plain_text,
             coverImageUrl: item.properties['Cover Image URL'].url,
             tags: item.properties['Tags'].multi_select.map(tag => tag.name),
             content: contentMarkdown
@@ -103,7 +102,7 @@ app.get('/notion-database', async (req, res) => {
     }
 
     for (const item of formattedResponse) {
-      await createHashnodeBlog(item);
+      await createDevToBlog(item);
     }
 
     res.json(formattedResponse);
@@ -113,16 +112,43 @@ app.get('/notion-database', async (req, res) => {
   }
 });
 
+const createDevToBlog = async ({ title, content, tags, coverImageUrl }) => {
+  try {
+      const response = await axios.post(
+      'https://dev.to/api/articles',
+      {
+          article: {
+          title: title,
+          published: true,
+          body_markdown: content,
+          tags: tags,
+          series: 'Hello World!'
+          },
+      },
+      {
+          headers: {
+          'Content-Type': 'application/json',
+          'api-key': DEV_TO_API_KEY, // Replace with your DEV.to API key
+          },
+      }
+      );
+      return response.data;
+  } catch (error) {
+      console.error('Error creating DEV.to blog post:', error.message);
+      throw new Error('Failed to create DEV.to blog post.');
+  }
+};
+
 const createHashnodeBlog = async ({ title, content, tags, coverImageUrl }) => {
   try {
     const mutation = `
-      mutation ($input: CreateStoryInput!) {
-        createStory(input: $input) {
-          code
-          message
-        }
+    mutation ($input: CreateStoryInput!) {
+      createStory(input: $input) {
+        code
+        message
       }
-    `;
+    }
+  `;
 
     const response = await axios.post(
       'https://api.hashnode.com',
@@ -130,10 +156,11 @@ const createHashnodeBlog = async ({ title, content, tags, coverImageUrl }) => {
         query: mutation,
         variables: {
           input: {
-            title,
+            title: title,
+            slug: title.toLowerCase().replace(/ /g, '-'),
             contentMarkdown: content,
-            tags,
-            coverImageUrl
+            tags: tags,
+            coverImageUrl: coverImageUrl,
           }
         }
       },
@@ -151,3 +178,38 @@ const createHashnodeBlog = async ({ title, content, tags, coverImageUrl }) => {
     throw new Error('Failed to create Hashnode blog post.');
   }
 };
+
+const createMediumBlog = async ({ title, content, tags, coverImageUrl }) => {
+    try {
+        const response = await axios.post(
+        'https://api.medium.com/v1/users/' + MEDIUM_USER_ID + '/posts',
+        {
+            title: title,
+            contentFormat: 'markdown',
+            content: content,
+            tags: tags,
+            publishStatus: 'public',
+            notifyFollowers: true,
+            license: 'all-rights-reserved',
+            canonicalUrl: '',
+            coverImageUrl: coverImageUrl,
+        },
+        {
+            headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer ' + MEDIUM_ACCESS_TOKEN, // Replace with your Medium access token
+            },
+        }
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Error creating Medium blog post:', error.message);
+        throw new Error('Failed to create Medium blog post.');
+        }
+    };
+
+app.listen(PORT, () => {
+console.log(`Server listening on port ${PORT}`);
+});
+
+module.exports = {createDevToBlog, convertBlockToMarkdown};
