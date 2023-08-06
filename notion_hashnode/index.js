@@ -8,6 +8,7 @@ const app = express();
 const PORT = 3000;
 const NOTION_API_KEY = process.env.NOTION_API_KEY;
 const HASHNODE_API_KEY = process.env.HASHNODE_API_KEY;
+const NOTION_DATABASE_ID = process.env.NOTION_DATABASE_ID;
 const notion = new Client({ auth: NOTION_API_KEY });
 
 app.use(express.json());
@@ -53,8 +54,8 @@ function convertBlockToMarkdown(block) {
    }
 }
 
-app.get('/notion-database/:databaseId', async (req, res) => {
-  const { databaseId } = req.params;
+app.get('/notion-database', async (req, res) => {
+  const  databaseId = NOTION_DATABASE_ID;
 
   try {
     const response = await notion.databases.query({

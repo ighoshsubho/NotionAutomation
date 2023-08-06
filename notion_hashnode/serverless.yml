@@ -22,6 +22,8 @@ frameworkVersion: "3"
 
 provider:
   name: aws
+  stage: prod
+  region: us-east-1
   runtime: nodejs18.x
 
 # you can overwrite defaults here
@@ -62,9 +64,13 @@ functions:
   hello:
     handler: handler.hello
     events:
-      - httpApi:
-          path: /users/create
-          method: get
+      - http: ANY /{proxy+}
+      - http: ANY /
+    environment:
+      NOTION_API_KEY: <YOUR_NOTION_API_KEY>
+      HASHNODE_API_KEY: <YOUR_HASHNODE_API_KEY>
+      NOTION_DATABASE_ID: <YOUR_DATABASE_ID>
+    
 #      - websocket: $connect
 #      - s3: ${env:BUCKET}
 #      - schedule: rate(10 minutes)
