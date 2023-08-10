@@ -60,7 +60,7 @@ Here is a screenshot of the table and the propery names. ⬇️
 
 
 
-Make sure to name them exactly this.
+Make sure to name them exactly this. And `DON'T FORGET` to add a `Published` status.
 
 Now it is time to connect the page to the Developers App you just built.
 
