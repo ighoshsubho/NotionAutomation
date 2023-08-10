@@ -17,42 +17,88 @@ function convertToMarkdown(richText) {
   return richText.map(textObj => textObj.text.content).join('');
 }
 
-function convertBlockToMarkdown(block) {
-  switch (block.type) {
-     case 'paragraph':
-       return convertToMarkdown(block.paragraph.rich_text);
-     case 'heading_1':
-       return `# ${convertToMarkdown(block.heading_1.rich_text)}`;
-     case 'heading_2':
-       return `## ${convertToMarkdown(block.heading_2.rich_text)}`;
-     case 'heading_3':
-       return `### ${convertToMarkdown(block.heading_3.rich_text)}`;
-     case 'bulleted_list_item':
-       return `- ${convertToMarkdown(block.bulleted_list_item.rich_text)}`;
-     case 'numbered_list_item':
-       return `1. ${convertToMarkdown(block.numbered_list_item.rich_text)}`;
-     case 'to_do':
-       return `- [${block.to_do.checked ? 'x' : ' '}] ${convertToMarkdown(block.to_do.rich_text)}`;
-     case 'toggle':
-       return `> ${convertToMarkdown(block.toggle.rich_text)}`;
-     case 'child_page':
-       return `## ${convertToMarkdown(block.child_page.title.rich_text)}`;
-     case 'image':
-       return `![${block.image.caption[0]}](${block.image.external.url})`;
-     case 'video':
-       return `![${block.video.caption[0]}](${block.video.external.url})`;
-     case 'embed':
-       return `![${block.embed.caption[0]}](${block.embed.external.url})`;
-     case 'bookmark':
-       return `![${block.bookmark.caption[0]}](${block.bookmark.external.url})`;
-     case 'code':
-       return `\`\`\`${block.code.language}\n${block.code.rich_text.map(obj => obj.plain_text)}\n\`\`\``;
-     case 'callout':
-       return `> ${convertToMarkdown(block.callout.rich_text)}`;
-     default:
-       return ''; 
-   }
-}
+const renderNestedListMarkdown = (block) => {
+  const { type } = block;
+  const value = block[type];
+
+  if (!value) return "";
+
+  const isNumberedList = value.children?.type === "numbered_list_item";
+  const listType = isNumberedList ? "ol" : "ul";
+
+  return value.children?.map((child) => {
+      const listItemText = child.numbered_list_item || child.bulleted_list_item;
+      if (listItemText) {
+        return `  - ${convertToMarkdown(listItemText.rich_text)}\n${convertToMarkdownNew(child)}`;
+      }
+      return "";
+    })
+    .join("");
+};
+
+const convertBlockToMarkdown = (block) => {
+  const { type } = block;
+  const value = block[type];
+
+  switch (type) {
+    case "paragraph":
+      return `${convertToMarkdown(value.rich_text)}\n\n`;
+    case "heading_1":
+      return `# ${convertToMarkdown(value.rich_text)}\n\n`;
+    case "heading_2":
+      return `## ${convertToMarkdown(value.rich_text)}\n\n`;
+    case "heading_3":
+      return `### ${convertToMarkdown(value.rich_text)}\n\n`;
+    case "bulleted_list":
+    case "numbered_list":
+      return value.children
+        .map((child) => convertToMarkdownNew(child))
+        .join("");
+    case "bulleted_list_item":
+    case "numbered_list_item":
+      return `- ${convertToMarkdown(value.rich_text)}\n${renderNestedListMarkdown(block)}`;
+    case "to_do":
+      return `- [${value.checked ? "x" : " "}] ${convertToMarkdown(value.rich_text)}\n`;
+    case "toggle":
+      return `**${convertToMarkdown(value.rich_text)}**\n${block.children
+        .map((child) => convertToMarkdownNew(child))
+        .join("")}`;
+    case "child_page":
+      return `**${value.title}**\n${block.children
+        .map((child) => convertToMarkdownNew(child))
+        .join("")}`;
+    case "image":
+      const src = value.type === "external" ? value.external.url : value.file.url;
+      const caption = value.caption ? value.caption[0]?.plain_text : "";
+      return `![${caption}](${src})\n\n`;
+    case "divider":
+      return "---\n\n";
+    case "quote":
+      return `> ${convertToMarkdown(value.rich_text)}\n\n`;
+    case "code":
+      return `\`\`\`${value.language}\n` + convertToMarkdown(value.rich_text) + "\n```\n\n";
+    case "file":
+      const srcFile = value.type === "external" ? value.external.url : value.file.url;
+      const captionFile = value.caption ? value.caption[0]?.plain_text : "";
+      return `[${captionFile}](${srcFile})\n\n`;
+    case "bookmark":
+      return `[${value.url}](${value.url})\n\n`;
+    case "table":
+      return value.children
+        .map((child) => convertToMarkdownNew(child))
+        .join("");
+    case "column_list":
+      return block.children
+        .map((child) => convertToMarkdownNew(child))
+        .join("");
+    case "column":
+      return block.children
+        .map((child) => convertToMarkdownNew(child))
+        .join("");
+    default:
+      return `❌ Unsupported block (${type === "unsupported" ? "unsupported by Notion API" : type})\n\n`;
+  }
+};
 
 app.get('/notion-database', async (req, res) => {
   const  databaseId = NOTION_DATABASE_ID;
@@ -138,75 +184,6 @@ const createDevToBlog = async ({ title, content, tags, coverImageUrl }) => {
       throw new Error('Failed to create DEV.to blog post.');
   }
 };
-
-const createHashnodeBlog = async ({ title, content, tags, coverImageUrl }) => {
-  try {
-    const mutation = `
-    mutation ($input: CreateStoryInput!) {
-      createStory(input: $input) {
-        code
-        message
-      }
-    }
-  `;
-
-    const response = await axios.post(
-      'https://api.hashnode.com',
-      {
-        query: mutation,
-        variables: {
-          input: {
-            title: title,
-            slug: title.toLowerCase().replace(/ /g, '-'),
-            contentMarkdown: content,
-            tags: tags,
-            coverImageUrl: coverImageUrl,
-          }
-        }
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: HASHNODE_API_KEY, // Replace with your Hashnode API key
-        },
-      }
-    );
-
-    return response.data;
-  } catch (error) {
-    console.error('Error creating Hashnode blog post:', error.message);
-    throw new Error('Failed to create Hashnode blog post.');
-  }
-};
-
-const createMediumBlog = async ({ title, content, tags, coverImageUrl }) => {
-    try {
-        const response = await axios.post(
-        'https://api.medium.com/v1/users/' + MEDIUM_USER_ID + '/posts',
-        {
-            title: title,
-            contentFormat: 'markdown',
-            content: content,
-            tags: tags,
-            publishStatus: 'public',
-            notifyFollowers: true,
-            license: 'all-rights-reserved',
-            canonicalUrl: '',
-            coverImageUrl: coverImageUrl,
-        },
-        {
-            headers: {
-            'Content-Type': 'application/json',
-            Authorization: 'Bearer ' + MEDIUM_ACCESS_TOKEN, // Replace with your Medium access token
-            },
-        }
-        );
-        return response.data;
-    } catch (error) {
-        console.error('Error creating Medium blog post:', error.message);
-        throw new Error('Failed to create Medium blog post.');
-        }
-    };
 
 app.listen(PORT, () => {
 console.log(`Server listening on port ${PORT}`);
