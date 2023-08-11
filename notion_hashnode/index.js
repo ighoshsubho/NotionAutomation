@@ -100,6 +100,51 @@ const convertBlockToMarkdown = (block) => {
   }
 };
 
+app.get('/update-blogs', async (req, res) => {
+  const databaseId = NOTION_DATABASE_ID;
+  try{
+    const response = await notion.databases.query({
+      database_id: databaseId,
+      filter: {
+        property: 'Status', // Replace with the actual property name for status
+        status: {
+          equals: 'Published', // Replace with the value that represents "done" status
+        },
+      },
+    });
+
+    const formattedResponse = [];
+
+    for (const item of response.results) {
+      
+      if(item.url){
+      const linkedPageId = item.url.slice(-32);
+
+      const linkedPageResponse = await notion.blocks.children.list({
+        block_id: linkedPageId,
+      });
+
+      const contentMarkdown = linkedPageResponse.results.map(block => convertBlockToMarkdown(block)).join('\n');
+
+      formattedResponse.push({
+        title: item.properties['Title'].title[0].plain_text,
+        coverImageUrl: item.properties['Cover Image URL'].url,
+        tags: item.properties['Tags'].multi_select.map(tag => tag.name),
+        content: contentMarkdown,
+        id: item.properties['ID'].number,
+      });
+    }
+}
+        for (const item of formattedResponse) {
+          await createDevToBlogPublished(item);
+        }
+        res.json({message: 'Successfully updated blogs', content:formattedResponse, status: 200});
+  }catch(error){
+    console.error('Error querying Notion database:', error.message);
+    res.status(500).json({ error: 'Failed to query Notion database.' });
+  }
+});
+
 app.get('/notion-database', async (req, res) => {
   const  databaseId = NOTION_DATABASE_ID;
 
@@ -127,6 +172,19 @@ app.get('/notion-database', async (req, res) => {
 
       const contentMarkdown = linkedPageResponse.results.map(block => convertBlockToMarkdown(block)).join('\n');
 
+          formattedResponse.push({
+            title: item.properties['Title'].title[0].plain_text,
+            coverImageUrl: item.properties['Cover Image URL'].url,
+            tags: item.properties['Tags'].multi_select.map(tag => tag.name),
+            content: contentMarkdown,
+            id: item.id
+          });
+        }
+    }
+
+    for (const item of formattedResponse) {
+      const published_response = await createDevToBlog(item);
+
       const response_1 = await notion.pages.update({
         page_id: item.id,
         properties: {
@@ -135,23 +193,14 @@ app.get('/notion-database', async (req, res) => {
               name: 'Published'
             }
           },
+          'ID': {
+            number: published_response.id
+          }
         }
       });
-
-          formattedResponse.push({
-            title: item.properties['Title'].title[0].plain_text,
-            coverImageUrl: item.properties['Cover Image URL'].url,
-            tags: item.properties['Tags'].multi_select.map(tag => tag.name),
-            content: contentMarkdown
-          });
-        }
     }
 
-    for (const item of formattedResponse) {
-      await createDevToBlog(item);
-    }
-
-    res.json(formattedResponse);
+    res.json({message:'Successfully published blogs to DevTo.', content:formattedResponse, status: 200});
   } catch (error) {
     console.error('Error querying Notion database:', error.message);
     res.status(500).json({ error: 'Failed to query Notion database.' });
@@ -185,8 +234,35 @@ const createDevToBlog = async ({ title, content, tags, coverImageUrl }) => {
   }
 };
 
+const createDevToBlogPublished = async ({ title, content, tags, coverImageUrl, id }) => {
+  try {
+      const response = await axios.put(
+        `https://dev.to/api/articles/${id}`,
+      {
+          article: {
+          title: title,
+          published: true,
+          body_markdown: content,
+          tags: tags,
+          series: 'Hello World!'
+          },
+      },
+      {
+          headers: {
+          'Content-Type': 'application/json',
+          'api-key': DEV_TO_API_KEY, // Replace with your DEV.to API key
+          },
+      }
+      );
+      return response.data;
+  } catch (error) {
+      console.error('Error creating DEV.to blog post:', error.message);
+      throw new Error('Failed to create DEV.to blog post.');
+  }
+};
+
 app.listen(PORT, () => {
 console.log(`Server listening on port ${PORT}`);
 });
 
-module.exports = {createDevToBlog, convertBlockToMarkdown};
+module.exports = {createDevToBlog, createDevToBlogPublished, convertBlockToMarkdown};
