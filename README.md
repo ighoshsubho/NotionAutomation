@@ -29,7 +29,7 @@ Head to [Notion's Integration Website](https://www.notion.so/my-integrations). M
 
 Finally it's time to get the NOTION_DATABASE_ID
 
-See the URL of the page. For example https://www.notion.so/rajdeepsengupta/Blogs-cd0db9f8767843ca9563c591a233be5b. Here `cd0db9f8767843ca9563c591a233be5b` is the database id.
+See the URL of the page. For example https://www.notion.so/XYZ/ContentCurator-cd0db9f8767843ca9563c591a233be5b. Here `cd0db9f8767843ca9563c591a233be5b` is the database id.
 
 ### Step 3
 
