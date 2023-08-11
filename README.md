@@ -60,7 +60,7 @@ Here is a screenshot of the table and the propery names. ⬇️
 ![image](https://github.com/ighoshsubho/NotionAutomation/assets/93722719/cc7fe96b-58df-4140-b3f4-b7b158427707)
 
 
-Make sure to name them exactly this. And `DON'T FORGET` to add a `Published` status.
+Make sure to name them exactly this. And `DON'T FORGET` to add a `Published` status. But initally it should have status `Not started` or `In progress`. Once you're done writing the blog, change your status to done. It will automatically get changed to status published and keep track of your post updates every 10 mins.
 
 Now it is time to connect the page to the Developers App you just built.
 
