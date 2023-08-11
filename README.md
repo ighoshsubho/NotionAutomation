@@ -54,10 +54,10 @@ Description
 Cover Image URL
 Tags
 Status
+ID
 ```
 Here is a screenshot of the table and the propery names. ⬇️
-![image](https://github.com/ighoshsubho/NotionAutomation/assets/93722719/b96769ce-b855-425c-a64d-b33510aec8fc)
-
+![image](https://github.com/ighoshsubho/NotionAutomation/assets/93722719/cc7fe96b-58df-4140-b3f4-b7b158427707)
 
 
 Make sure to name them exactly this. And `DON'T FORGET` to add a `Published` status.
@@ -67,7 +67,8 @@ Now it is time to connect the page to the Developers App you just built.
 Go to Shares of the page and scroll down until you find **Connections** . Click on **Add connections** and add your developer app. 
 
 Here is a screenshot of where you can find the connections. And then you can add your app you made in this website [Notion's Integration Website](https://www.notion.so/my-integrations) ⬇️
-![image](https://github.com/ighoshsubho/NotionAutomation/assets/93722719/84e4d92d-d2cc-461c-b20b-642d60aa5574)
+
+![image](https://github.com/ighoshsubho/NotionAutomation/assets/93722719/19355ee3-5bea-4798-abe3-86a938b772b3)
 
 
 ### Step 5 🏃
